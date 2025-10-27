@@ -11,3 +11,4 @@ A large amout of debugging of this project was done by Microsft Project.
 
 Thsi project must use an ESP32S3 (Huge memory model) with PSRAM.  I have not tested it with different amounts of PSRAM so I am not sure how much is needed.  I used 8M.
 
+![IMG_1852](https://github.com/user-attachments/assets/06e8be33-62f3-4bf1-9463-3b8040d9a2fc)
