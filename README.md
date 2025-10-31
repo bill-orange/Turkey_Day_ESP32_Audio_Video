@@ -1,7 +1,7 @@
 I will be the first to admit that this is a pretty frivilous project.  It is an Audio/Visual mix of Thanksgiving and Haloween.
 It's real purpose was to develop functions for:
    Playing Mp3 files through an I2S DAC.
-   Playbg text strings through an I2S DAC.
+   Playing text strings through an I2S DAC.
    Generating Text messages by OpenAI from text prompts.
    Displaying PNG files from a web resource.
    
