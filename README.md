@@ -5,9 +5,9 @@ Its real purpose was to develop functions for:
    Generating Text messages by OpenAI from text prompts.
    Displaying PNG files from a web resource.
    
-The playing of audio files uses the  OpenAT TTS API,  It is very inexpensive but not free. The generation of text from the API also involves a small per use fee.
+The playing of audio files uses the  OpenAI TTS API,  It is very inexpensive but not free. The generation of text from the API also involves a small per use fee.
 
-A large amout of debugging of this project was done by Microsft Project.
+A large amout of debugging of this project was done by Microsft CoPilot (MicroSoft's AI).
 
 Thsi project must use an ESP32S3 (Huge memory model) with PSRAM.  I have not tested it with different amounts of PSRAM so I am not sure how much is needed.  I used 8M.
 
