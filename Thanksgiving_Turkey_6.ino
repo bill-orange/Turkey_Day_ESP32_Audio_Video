@@ -15,12 +15,16 @@
    This project uses button-debounce by Aaron Kimball Copyright 2022
    under BSD 3-Clause "New" or "Revised" License
 
-   Soundclip of axe fall: 
+   Soundclips: 
     100929_monster_without_arni.wav by Gzmo -- https://freesound.org/s/140256/ -- License: Creative Commons 0
+    Turkeys gobbling in barn.mp3 by DrDufus -- https://freesound.org/s/417327/ -- License: Creative Commons 0
 
    10/24/2025 First Tests with Graphics
    10/25/2025 Graphics works,TTS works, flow control testing
    10/26/2025 Flow control works now, adding updated payload construction and speechengine enhancements
+   10/29/2025 Removed unused Timer
+   10/30/2025 Minors and lightweight multiWiFi
+   11/03/2025 Added panic gobble suggested by MS Copilot
 
    */
 
@@ -45,8 +49,8 @@ SET_LOOP_TASK_STACK_SIZE(14 * 1024);  // needed to handle really long strings
 // Connect a button to some GPIO pin; digital pin 6 in this example.
 static constexpr int PIN = 19;
 
-const char* ssid = ssid_1;
-const char* password = password_1;
+//const char* ssid = ssid_1;
+//const char* password = password_1;
 
 const char* apiKey = chatGPT_APIKey;  // Replace with your actual key
 const int TOKENS = 100;               // How lengthy a response you want, every token is about 3/4 a word
@@ -60,6 +64,9 @@ int allReadySaid2 = 0;
 int allReadySaid3 = 0;
 int allReadySaid4 = 0;
 int audioLock = 1;
+
+int bestIndex = -1;
+int bestRSSI = -100;
 
 unsigned long audioStartTime = 0;
 bool isPlaying = false;
@@ -112,13 +119,6 @@ void setup() {
   delay(1000);
   pinMode(PIN, INPUT_PULLUP);
 
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nWiFi connected");
   Serial.println("Initialize Chatgpt");
   chat.init(chatGPT_APIKey_txt, model);  // Initialize AI chat
   Serial.println("DONE-Initialize Chatgpt");
@@ -127,6 +127,8 @@ void setup() {
   tft.fillScreen(0);
   tft.setRotation(2);
   fileInfo();
+
+  connectToBestWiFi();
 
   if (!psramInit()) {
     Serial.println("❌ PSRAM init failed");
@@ -146,12 +148,11 @@ void setup() {
 void loop() {
 
   pollButtons();  // Poll your buttons every loop.
-  unsigned long timer = millis();
-
+  
   if (nexToSay == 0 && allReadySaid1 == 0 && audioLock == 1) {
     delay(100);
     showGraphic("Thanksgiving.png");
-    speechEngine("Happy Thanksgiving if you are not a Turkey", "echo", 0.80, "Speak with a cheerful excessively upbeat voice.");  // Google TTS
+    speechEngine("Happy Thanksgiving, if you are not a Turkey", "echo", .90, "Speak with an excessively cheerful, upbeat voice.");  // ChatGPT TTS
     allReadySaid1 = 0;
     nexToSay = 1;
     audioLock = 0;
@@ -160,7 +161,7 @@ void loop() {
   if (nexToSay == 1 && allReadySaid1 == 0 && audioLock == 1 && !isPlaying) {
     delay(100);
     showGraphic("Axe.png");
-    speechEngine("Press the Axe for an unpleasant surprise for the Turkey", "echo", 1.00,"Speak in an ominious threatening tone.");  // ChatGPT TTS
+    speechEngine("Press the Axe for an unpleasant surprise for the Turkey", "echo", 1.00,"Speak in an ominious threatening tone.");
     allReadySaid1 = 1;
     nexToSay = 5;
     audioLock = 0;
@@ -189,9 +190,9 @@ void loop() {
     delay(2000);
     showGraphic("cooked_turkey.png");
     if (millis() % 3 == 0) {
-      speechEngine("Here's your Turkey. Need another?", "echo", 1.00, "Speak in a happy tone refelecting gallows humor");  // Google TTS}
+      speechEngine("Here's your Turkey. Need another?", "echo", 1.00, "Speak in a happy tone refelecting gallows humor");  
     } else {
-      speechEngine("Your Turkey is ready! If more guests are coming, prepare another.", "echo", 1.00, "Speak in a happy tone refelecting gallows humor");  // Google TTS }
+      speechEngine("Your Turkey is ready! If more guests are coming, prepare another.", "echo", 1.00, "Speak in a happy tone refelecting gallows humor");
     }
     allReadySaid4 = 1;
     nexToSay = 5;
@@ -319,7 +320,7 @@ void AxeFall() {
   isPlaying = true;
   audioStartTime = millis();
   HTTPClient http;
-  http.begin("https://raw.githubusercontent.com/bill-orange/Turkey_Day_ESP32_Audio_Video/master/Data/gzmo__1.mp3");
+  http.begin("https://raw.githubusercontent.com/bill-orange/Turkey_Day_ESP32_Audio_Video/master/Data/turkey.mp3");
   Serial.println("📡 Sending GET request for MP3...");
   int httpCode = http.GET();
   Serial.print("🌐 HTTP response code: ");
@@ -465,3 +466,42 @@ char* sanitizeQuip(const char* input) {
   }
   return result;
 }
+
+/*------------------------------- Light weight multiWiFi------------------------------------------------*/
+
+void connectToBestWiFi() {
+  Serial.println("📡 Scanning for available networks...");
+  int n = WiFi.scanNetworks();
+
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < numNetworks; ++j) {
+      if (WiFi.SSID(i) == ssidList[j] && WiFi.RSSI(i) > bestRSSI) {
+        bestRSSI = WiFi.RSSI(i);
+        bestIndex = j;
+      }
+    }
+  }
+
+  if (bestIndex != -1) {
+    Serial.printf("🔌 Connecting to %s (RSSI: %d)\n", ssidList[bestIndex], bestRSSI);
+    WiFi.begin(ssidList[bestIndex], passList[bestIndex]);
+
+    unsigned long startAttemptTime = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
+      delay(250);
+      Serial.print(".");
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.printf("\n✅ Connected to %s\n", ssidList[bestIndex]);
+      Serial.print("🌐 IP Address: ");
+      Serial.println(WiFi.localIP());
+    } else {
+      Serial.println("\n❌ Connection failed. No usable network found.");
+    }
+  } else {
+    Serial.println("⚠️ No known networks found.");
+  }
+}
+
+
